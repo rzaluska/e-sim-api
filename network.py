@@ -4,7 +4,7 @@
 import urllib, urllib2, cookielib
 
 class AuthNetworkTools:
-    '''Class for general usage when it is going to use cookies to track user sesion in page.'''
+    '''Class for general usage when it is going to use cookies to track user sesion in web page.'''
     def __init__(self,base_url):
         self.bu=base_url
         self.cookie_file = 'login.cookies'
