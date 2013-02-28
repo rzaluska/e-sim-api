@@ -5,7 +5,8 @@ import json
 from network import SimpleUrl
 
 class OfficialApi:
-    '''Wrapper around official e-sim's API'''
+    '''Wrapper around official e-sim's API
+    For more info see wiki page http://wiki.e-sim.org/index.php/API'''
     def __init__(self, server):
         if server == 0:
             self.n = SimpleUrl("http://primera.e-sim.org/")
@@ -28,3 +29,18 @@ class OfficialApi:
         page=self.n.open_url('apiMilitaryUnitMembers.html?id='+mu_id)
         return json.loads(page.read())
 
+    def get_countries_list(self):
+        page=self.n.open_url('apiCountries.html')
+        return json.loads(page.read())
+
+    def get_ranks(self):
+        page=self.n.open_url('apiRanks.html')
+        return json.loads(page.read())
+
+    def get_map_data(self):
+        page=self.n.open_url('apiMap.html')
+        return json.loads(page.read())
+
+    def get_map_data(self):
+        page=self.n.open_url('apiRegions.html')
+        return json.loads(page.read())
