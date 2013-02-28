@@ -41,6 +41,6 @@ class OfficialApi:
         page=self.n.open_url('apiMap.html')
         return json.loads(page.read())
 
-    def get_map_data(self):
+    def get_regions_data(self):
         page=self.n.open_url('apiRegions.html')
         return json.loads(page.read())

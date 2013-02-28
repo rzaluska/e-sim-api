@@ -382,6 +382,26 @@ class Wraper:
         return info
 
     def vote(self,candidateId):
-        '''action:VOTE
-        candidateId:10756'''
-        pass
+        response = self.n.post_page('newspaper.html?id=',{'action':'VOTE','candidateId':candidateId})
+        return response
+
+    def get_own_product_market_offers_list(self):
+        response=self.n.get_page('citizenMarketOffers.html')
+        l=[]
+        soup=BeautifulSoup(response.read())
+        tabela=soup.find('table',{'class':'dataTable'}).findChildren('tr')[1:]
+        for x in tabela:
+            o={}
+            if len(x.contents[1].contents[1].contents)!=5:
+                o['Product']=str(x.contents[1].contents[1].contents[1].contents[1].attrs[0][1][46:-4])
+            else:
+                o['Product']=str(x.contents[1].contents[1].contents[1].contents[1].attrs[0][1][46:-4])+'Q' +str(x.contents[1].contents[1].contents[1].contents[3].attrs[0][1][47:-4])
+            o['Stock']=x.contents[5].contents[0].strip()
+            o['Price (Gross)']=x.contents[7].contents[2].contents[0]
+            o['Price (Net)']=x.contents[9].contents[2].contents[0]
+            o['Vat']=x.contents[11].contents[2].contents[0]
+            o['Import Tax']=x.contents[13].contents[2].contents[0]
+            o['ID']=x.contents[15].contents[1].contents[1].attrs[2][1]
+            l.append(o)
+        return l
+
