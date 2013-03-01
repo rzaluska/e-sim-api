@@ -267,7 +267,6 @@ class UserSesion:
         response = self.n.get_page('index.html')
         parser = etree.HTMLParser()
         tree = etree.parse(response, parser)
-        # soup=BeautifulSoup(response.read())
         info = {}
         info['Nick'] = tree.xpath('//*[@id="userName"]')[0].text
         info['Level'] = tree.xpath('//*[@id="userMenu"]/div[2]/div[2]/b')[0].text.strip('Level: ')
@@ -295,6 +294,7 @@ class UserSesion:
         info['Citizenship'] = re.findall('http://e-sim.home.pl/testura/img/flags/small/(.+)\.png', tree.xpath('//*[@id="stats"]/img[2]')[0].attrib['src'])[0]
         info['Food limit'] = tree.xpath('//*[@id="foodLimit"]')[0].text
         info['Gift limit'] = tree.xpath('//*[@id="giftLimit"]')[0].text
+        info['ID']=tree.xpath('//*[@id="userName"]')[0].attrib['href'][16:]
 
         return info
 
@@ -416,4 +416,35 @@ class UserSesion:
         eq['Miss chance']=tree.xpath('//*[@id="missHelp"]/b')[0].text.strip()
         eq['Chance to avoid DMG']=tree.xpath('//*[@id="avoidHelp"]/b')[0].text.strip()
         return eq
+    
+    def get_citizen_friends_list(self,citizenId=0):
+        l=[]
+        if citizenId==0:
+            response=self.n.get_page('profile.html?id='+self.get_my_info()['ID'])
+            soup=BeautifulSoup(response.read())
+            count_pages=len(soup.find('ul',{'id':'pagination-digg'}).findChildren('li')[1:-1])+1
+            for x in range(1,count_pages):
+                response=self.n.get_page('profile.html?id='+self.get_my_info()['ID']+'&page='+str(x))
+                soup=BeautifulSoup(response.read())
+                for y in soup.findAll('div',{'style':'float: left; width: 92px; height: 75px; word-wrap: break-word'}):
+                    w={}
+                    w['Nick']=y.contents[1].contents[0]
+                    w['ID']=dict(y.contents[1].attrs)['href'][16:]
+                    w['Citizenship']=y.contents[3].attrs[2][1][45:-4]
+                    l.append(w)
+        else:
+            response=self.n.get_page('profile.html?id='+citizenId)
+            soup=BeautifulSoup(response.read())
+            count_pages=len(soup.find('ul',{'id':'pagination-digg'}).findChildren('li')[1:-1])+1
+            for x in range(1,count_pages):
+                response=self.n.get_page('profile.html?id='+citizenId+'&page='+str(x))
+                soup=BeautifulSoup(response.read())
+                for y in soup.findAll('div',{'style':'float: left; width: 92px; height: 75px; word-wrap: break-word'}):
+                    w={}
+                    w['Nick']=y.contents[1].contents[0]
+                    w['ID']=dict(y.contents[1].attrs)['href'][16:]
+                    w['Citizenship']=y.contents[3].attrs[2][1][45:-4]
+                    l.append(w)
+        return l
+            
         
