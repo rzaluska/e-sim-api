@@ -6,20 +6,18 @@ from BeautifulSoup import BeautifulSoup
 from network import AuthNetworkTools
 from lxml import etree
 
-class Wraper:
+class UserSesion:
     '''This class contains functions to parse e-sim data directly from this game pages.
     After every function response to e-sim server is sended so pages are allays had to be updated between every functions calls.
     Class contains functions to get data and also to put data to e-sim game.
-    So now you have chance to administrate your e-sim account from python script.'''
-    def __init__(self, server):
+    So now you have chance to administrate your e-sim account from python script.
+    Arguments for class are server, login and password.'''
+    def __init__(self, server,login, password):
         if server == 0:
             self.n = AuthNetworkTools("http://primera.e-sim.org/")
         elif server == 1:
             self.n = AuthNetworkTools("http://secura.e-sim.org/")
-    def login(self, login, password):
-        '''login to esim account using given login and password.'''
-        response = self.n.post_page('login.html', {'login':login, 'password':password})
-        return response.url
+        self.n.post_page('login.html', {'login':login, 'password':password})
 
     def logout(self):
         response = self.n.get_page('logout.html')
@@ -261,18 +259,7 @@ class Wraper:
         return response.url
 
     def fight(self):
-        fight_action='fight.html'
-        fight_data =  urllib.urlencode(
-        {
-        'side':'Fight (1 hit)',
-        'weaponQuality' : '0',
-        'battleRoundId' : '66535',
-        'side' : 'side',
-        'value' : 'Fight (1 hit)'
-        }
-        )
-        fight_url = base_url + fight_action
-        response = opener.open(fight_url, fight_data)
+        response=self.n.post_page('fight.html',{'side':'Fight (1 hit)','weaponQuality' : '0','battleRoundId' : '66535','side' : 'side','value' : 'Fight (1 hit)'})
         return response
 
     def get_my_info(self):
@@ -415,4 +402,18 @@ class Wraper:
     def post_new_product_market_offer(self,countryId,product,quantity,price):
         response=self.n.post_page('citizenMarketOffers.html', {'countryId':countryId,'product':product,'quantity':quantity,'price':price,'action':'POST_OFFER'})
         return response
-
+    
+    def get_equipment_stats(self):
+        response=self.n.get_page('train.html')
+        parser = etree.HTMLParser()
+        tree = etree.parse(response, parser)
+        eq={}
+        eq['Damage min']=tree.xpath('//*[@id="hitHelp"]/b[1]')[0].text.strip()
+        eq['Damage max']=tree.xpath('//*[@id="hitHelp"]/b[2]')[0].text.strip()
+        eq['Critical Hit min']=tree.xpath('//*[@id="contentRow"]/td[2]/div[2]/div[2]/div[1]/div[5]/b[1]')[0].text.strip()
+        eq['Critical Hit max']=tree.xpath('//*[@id="contentRow"]/td[2]/div[2]/div[2]/div[1]/div[5]/b[2]')[0].text.strip()
+        eq['Critical Hit chance']=tree.xpath('//*[@id="criticalHelp"]/b')[0].text.strip()
+        eq['Miss chance']=tree.xpath('//*[@id="missHelp"]/b')[0].text.strip()
+        eq['Chance to avoid DMG']=tree.xpath('//*[@id="avoidHelp"]/b')[0].text.strip()
+        return eq
+        
