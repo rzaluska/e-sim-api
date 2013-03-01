@@ -422,7 +422,7 @@ class UserSesion:
         if citizenId==0:
             response=self.n.get_page('profile.html?id='+self.get_my_info()['ID'])
             soup=BeautifulSoup(response.read())
-            count_pages=len(soup.find('ul',{'id':'pagination-digg'}).findChildren('li')[1:-1])+1
+            count_pages=int(soup.find('ul',{'id':'pagination-digg'}).findChildren('li')[-2].text)+1
             for x in range(1,count_pages):
                 response=self.n.get_page('profile.html?id='+self.get_my_info()['ID']+'&page='+str(x))
                 soup=BeautifulSoup(response.read())
@@ -435,7 +435,7 @@ class UserSesion:
         else:
             response=self.n.get_page('profile.html?id='+citizenId)
             soup=BeautifulSoup(response.read())
-            count_pages=len(soup.find('ul',{'id':'pagination-digg'}).findChildren('li')[1:-1])+1
+            count_pages=int(soup.find('ul',{'id':'pagination-digg'}).findChildren('li')[-2].text)+1
             for x in range(1,count_pages):
                 response=self.n.get_page('profile.html?id='+citizenId+'&page='+str(x))
                 soup=BeautifulSoup(response.read())
