@@ -22,7 +22,7 @@ class AuthNetworkTools:
 
     def get_page(self,url):
         self.u=self.bu+url
-        self.response = self.opener.open(self.u,)
+        self.response = self.opener.open(self.u)
         self.cj.save()
         return self.response
 

@@ -362,7 +362,6 @@ class Wraper:
         response = self.n.get_page('newspaper.html?id='+newspaperId)
         strona = response.read()
         soup = BeautifulSoup(strona)
-        tabela = soup.findAll('table',{'class':'dataTable'})
         liczba = len(re.findall('<div class="bigArticleTab">([0-9]+)</div>',str(soup)))
         info={}
         info['Newspaper ID']=soup.find('div',{'style':'width:440px;','class':'testDivblue'}).contents[1].contents[3].contents[1].contents[1].attrs[0][1].split('=')[-1]
@@ -392,7 +391,7 @@ class Wraper:
         tabela=soup.find('table',{'class':'dataTable'}).findChildren('tr')[1:]
         for x in tabela:
             o={}
-            if len(x.contents[1].contents[1].contents)!=5:
+            if len(x.contents[1].contents[1].contents[1].contents)!=5:
                 o['Product']=str(x.contents[1].contents[1].contents[1].contents[1].attrs[0][1][46:-4])
             else:
                 o['Product']=str(x.contents[1].contents[1].contents[1].contents[1].attrs[0][1][46:-4])+'Q' +str(x.contents[1].contents[1].contents[1].contents[3].attrs[0][1][47:-4])
@@ -404,4 +403,16 @@ class Wraper:
             o['ID']=x.contents[15].contents[1].contents[1].attrs[2][1]
             l.append(o)
         return l
+
+    def add_citizen_to_friend_list(self,citizenId):
+        response=self.n.get_page('friends.html?action=PROPOSE&id='+citizenId)
+        return response
+    
+    def delate_own_product_market_offer(self,offerID):
+        response=self.n.post_page('citizenMarketOffers.html', {'id':offerID,'action':'DELETE_OFFER'})
+        return response
+    
+    def post_new_product_market_offer(self,countryId,product,quantity,price):
+        response=self.n.post_page('citizenMarketOffers.html', {'countryId':countryId,'product':product,'quantity':quantity,'price':price,'action':'POST_OFFER'})
+        return response
 
