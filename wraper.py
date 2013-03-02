@@ -166,6 +166,7 @@ class UserSesion:
         binfo['Defender Alliases'] = re.findall('src="http://e-sim.home.pl/testura/img/flags/small/(.*)\.png\"', str(soup.find('div', {'style':'position: absolute; top: 100px; left: -10px; width: 150px; background: rgba(200,200,255, 0.9); z-index: 3; display: none; text-align: left; border: 1px solid rgb(75, 75, 255); border-radius: 3px; box-shadow: 3px 3px 3px rgb(120, 120, 120); text-shadow: 1px 1px 1px white'})))
         binfo['Atacker'] = re.findall('src=\"http://e-sim.home.pl/testura/img/flags/medium/(.*)\.png\" class="bigFlag', str(soup))[1]
         binfo['Atacker Alliases'] = re.findall('src="http://e-sim.home.pl/testura/img/flags/small/(.*)\.png\"', str(soup.find('div', {'style':'position: absolute; top: 100px; left: 390px; width: 150px; background: rgba(200,200,255, 0.9); z-index: 3; display: none; text-align: left; border: 1px solid rgb(75, 75, 255); border-radius: 3px; box-shadow: 3px 3px 3px rgb(120, 120, 120); text-shadow: 1px 1px 1px white'})))
+        binfo['Current round ID']=str(dict(soup.find('input' ,{'type':"hidden" ,'id':"battleRoundId" ,'name':"battleRoundId"}).attrs)['value'])
         return binfo
 
 
@@ -258,9 +259,27 @@ class UserSesion:
         response = self.n.post_page('train.html', {})
         return response.url
 
-    def fight(self):
-        response=self.n.post_page('fight.html',{'side':'Fight (1 hit)','weaponQuality' : '0','battleRoundId' : '66535','side' : 'side','value' : 'Fight (1 hit)'})
-        return response
+    def fight(self,weaponQuality,battleRoundId,side,value):
+        if side=='a':
+            side='attackers'
+        elif side=='d':
+            side='defenders'
+        if value==1:
+            value='Fight (1 hit)'
+        elif value==5:
+            value='Berserk! (5 hits)'
+        response=self.n.post_page('fight.html',{'weaponQuality' : weaponQuality, 'battleRoundId' : battleRoundId, 'side' : side, 'value' : value})
+        soup=BeautifulSoup(response.read())
+        results={}
+        results['Hit type']=soup.find('b',{'class':"mediumStatsLabel blueLabel",'style':"padding:3px 5px;"}).text
+        results['Damage done']=soup.find('table').findChildren('td')[1].text
+        results['Your total damage']=soup.find('table').findChildren('td')[3].text
+        results['Your base damage']=soup.find('table').findChildren('td')[5].text
+        results['Damage required for next rank']=soup.find('table').findChildren('td')[7].text
+        results['Weapon bonus']=soup.find('table').findChildren('td')[9].text
+        results['Xp gained']=soup.find('table').findChildren('td')[11].text
+        results['Health']=soup.find('table').findChildren('td')[13].text
+        return results
 
     def get_my_info(self):
         '''This function returns all info about curetly logged in player'''
@@ -394,15 +413,15 @@ class UserSesion:
     def add_citizen_to_friend_list(self,citizenId):
         response=self.n.get_page('friends.html?action=PROPOSE&id='+citizenId)
         return response
-    
+
     def delate_own_product_market_offer(self,offerID):
         response=self.n.post_page('citizenMarketOffers.html', {'id':offerID,'action':'DELETE_OFFER'})
         return response
-    
+
     def post_new_product_market_offer(self,countryId,product,quantity,price):
         response=self.n.post_page('citizenMarketOffers.html', {'countryId':countryId,'product':product,'quantity':quantity,'price':price,'action':'POST_OFFER'})
         return response
-    
+
     def get_equipment_stats(self):
         response=self.n.get_page('train.html')
         parser = etree.HTMLParser()
@@ -416,7 +435,7 @@ class UserSesion:
         eq['Miss chance']=tree.xpath('//*[@id="missHelp"]/b')[0].text.strip()
         eq['Chance to avoid DMG']=tree.xpath('//*[@id="avoidHelp"]/b')[0].text.strip()
         return eq
-    
+
     def get_citizen_friends_list(self,citizenId=0):
         l=[]
         if citizenId==0:
@@ -446,5 +465,3 @@ class UserSesion:
                     w['Citizenship']=y.contents[3].attrs[2][1][45:-4]
                     l.append(w)
         return l
-            
-        
