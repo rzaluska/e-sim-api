@@ -208,7 +208,7 @@ class UserSesion:
         response = self.n.post_page('eat.html', {'quality':quality})
         s=response.read()
         hp=re.findall('eat more, your health will exceed 100hp', s)
-        if hp is not None:
+        if hp:
             stat ="Your can't eat more, your health will exceed 100hp"
         else:
             stat='Done'
@@ -268,17 +268,20 @@ class UserSesion:
             value='Fight (1 hit)'
         elif value==5:
             value='Berserk! (5 hits)'
-        response=self.n.post_page('fight.html',{'weaponQuality' : weaponQuality, 'battleRoundId' : battleRoundId, 'side' : side, 'value' : value})
+        response=self.n.post_page('fight.html',{'weaponQuality' : str(weaponQuality), 'battleRoundId' : str(battleRoundId), 'side' : side, 'value' : value})
         soup=BeautifulSoup(response.read())
         results={}
-        results['Hit type']=soup.find('b',{'class':"mediumStatsLabel blueLabel",'style':"padding:3px 5px;"}).text
-        results['Damage done']=soup.find('table').findChildren('td')[1].text
-        results['Your total damage']=soup.find('table').findChildren('td')[3].text
-        results['Your base damage']=soup.find('table').findChildren('td')[5].text
-        results['Damage required for next rank']=soup.find('table').findChildren('td')[7].text
-        results['Weapon bonus']=soup.find('table').findChildren('td')[9].text
-        results['Xp gained']=soup.find('table').findChildren('td')[11].text
-        results['Health']=soup.find('table').findChildren('td')[13].text
+        if re.findall('No health left',str(soup)):
+            results['Error']='No health left'
+        else:
+            results['Hit type']=soup.find('b',{'class':"mediumStatsLabel blueLabel",'style':"padding:3px 5px;"}).text
+            results['Damage done']=soup.find('table').findChildren('td')[1].text
+            results['Your total damage']=soup.find('table').findChildren('td')[3].text
+            results['Your base damage']=soup.find('table').findChildren('td')[5].text
+            results['Damage required for next rank']=soup.find('table').findChildren('td')[7].text
+            results['Weapon bonus']=soup.find('table').findChildren('td')[9].text
+            results['Xp gained']=soup.find('table').findChildren('td')[11].text
+            results['Health']=soup.find('table').findChildren('td')[13].text
         return results
 
     def get_my_info(self):
