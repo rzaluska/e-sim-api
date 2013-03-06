@@ -4,7 +4,7 @@ This class is for general usage for people who want to interact with them e-sim 
 
 It contains Wrapper class for someone who want to have full access to e-sim account, and also contains class for parse various types of e-sim web based apis.
 
-*Dependences*
+<b>Dependences:</b>
 ```
 python-lxml
 BeautifulSoup
