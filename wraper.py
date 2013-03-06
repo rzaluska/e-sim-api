@@ -468,3 +468,19 @@ class UserSesion:
                     w['Citizenship']=y.contents[3].attrs[2][1][45:-4]
                     l.append(w)
         return l
+
+    def get_citizen_medals_list(self,citizenId):
+        response=self.n.get_page('profile.html?id='+citizenId)
+        soup=BeautifulSoup(response.read())
+        medals=soup.find('div',{'id':'medals'}).findChildren('div',{'class':'medal'})
+        med={}
+        for medal in medals:
+            if medal.contents[-1].split('medals/')[-1][:-6]==u'emptyMedal':
+                med[medal.findChildren('b')[0].text]='0'
+            else:
+                try:
+                    med[medal.findChildren('b')[0].text]=str(medal.findChildren('div')[0].text[1:])
+                except IndexError:
+                    med[medal.findChildren('b')[0].text]='1'
+        return med
+
