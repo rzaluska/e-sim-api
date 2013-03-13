@@ -3,33 +3,17 @@
 
 import re
 from BeautifulSoup import BeautifulSoup
-from network import AuthNetworkTools
 from lxml import etree
 
-class UserSesion:
+class Functions:
     '''This class contains functions to parse e-sim data directly from this game pages.
     After every function response to e-sim server is sended so pages are allays had to be updated between every functions calls.
     Class contains functions to get data and also to put data to e-sim game.
-    So now you have chance to administrate your e-sim account from python script.
-    Arguments for class are server, login and password.'''
-    def __init__(self, server,login, password):
-        if server == 0:
-            self.n = AuthNetworkTools("http://primera.e-sim.org/")
-        elif server == 1:
-            self.n = AuthNetworkTools("http://secura.e-sim.org/")
-        self.n.post_page('login.html', {'login':login, 'password':password})
-
-    def logout(self):
-        response = self.n.get_page('logout.html')
-        if response.code == 200:
-            s = 'OK'
-        else:
-            s = 'ERROR'
-        return s
-
+    So now you have chance to administrate your e-sim account from python script.'''
+    def __init__(self,LoggedUserSesionClass):
+        self.n=LoggedUserSesionClass.n
     def send_money(self, targetId, currencyId, summ, reason):
-        send_action = 'donateMoney.html?id=' + targetId
-        response = self.n.post_page(send_action, {'currencyId':currencyId, 'sum':summ, 'reason':reason})
+        response = self.n.post_page('donateMoney.html?id=' + targetId, {'currencyId':currencyId, 'sum':summ, 'reason':reason})
         return response
 
     def get_curent_money(self):
@@ -127,12 +111,13 @@ class UserSesion:
         soup = BeautifulSoup(strona)
         all_ids = re.findall('<option value="([0-9]+)"(.*)>(.*) \((.*)\)</option>', str(soup.find('select', {'id':'offeredMoneyId', 'name':'offeredMoneyId'})))
         # ilosc=len(all_ids)
-        IDS = {}
+        IDS = []
         for kraj in all_ids:
             s = {}
             s['ID'] = kraj[0]
             s['Currency'] = kraj[-2]
-            IDS[kraj[-1]] = s
+            s['Name']=kraj[-1]
+            IDS.append(s)
         return IDS
 
     def get_company_info(self, company_id):
@@ -155,10 +140,12 @@ class UserSesion:
         strona = response.read()
         soup = BeautifulSoup(strona)
         binfo = {}
-        binfo['Region Name'] = re.findall('region.html\?id=([0-9]+)">(.*)</a>', str(soup))[1][1]
-        binfo['Region ID'] = re.findall('region.html\?id=([0-9]+)">(.*)</a>', str(soup))[1][0]
+        binfo['Region Name'] = soup.find('div',{'style':'font-size: 21px; font-weight: bold; text-align: center'}).findChildren('a')[0].text
+        binfo['Region ID'] = soup.find('div',{'style':'font-size: 21px; font-weight: bold; text-align: center'}).findChildren('a')[0].attrs[-1][-1].split('=')[-1]
         if re.findall('Resistance war', str(soup)):  # do rozbudowy
             binfo['Battle type'] = 'Resistance war'
+        elif soup.find('div',{'style':'font-size: 21px; font-weight: bold; text-align: center'}).findChildren('a')[1]:
+             binfo['Battle type'] = soup.find('div',{'style':'font-size: 21px; font-weight: bold; text-align: center'}).findChildren('a')[1].text
         else:
             binfo['Battle type'] = 'Normal Battle'
         binfo['Current Round'] = re.findall('<div style="font-size: 17px; font-weight: bold; color: #111">Round ([0-9]+)</div>', str(soup))[0]
@@ -167,9 +154,15 @@ class UserSesion:
         binfo['Atacker'] = re.findall('src=\"http://e-sim.home.pl/testura/img/flags/medium/(.*)\.png\" class="bigFlag', str(soup))[1]
         binfo['Atacker Alliases'] = re.findall('src="http://e-sim.home.pl/testura/img/flags/small/(.*)\.png\"', str(soup.find('div', {'style':'position: absolute; top: 100px; left: 390px; width: 150px; background: rgba(200,200,255, 0.9); z-index: 3; display: none; text-align: left; border: 1px solid rgb(75, 75, 255); border-radius: 3px; box-shadow: 3px 3px 3px rgb(120, 120, 120); text-shadow: 1px 1px 1px white'})))
         binfo['Current round ID']=str(dict(soup.find('input' ,{'type':"hidden" ,'id':"battleRoundId" ,'name':"battleRoundId"}).attrs)['value'])
+        binfo['Defender Procent']=soup.find('div',{'id':'defenderPercent'}).text
+        binfo['Atacker Procent']=soup.find('div',{'id':'attackerPercent'}).text
+        binfo['Rounds won by defender']=re.findall('Rounds won by defender\(([0-9]+)\)',strona)[0]
+        binfo['Rounds won by attacker']=re.findall('Rounds won by attacker\(([0-9]+)\)',strona)[0]
+        binfo['Defenders total damge'] = soup.find('b',{'id':'defenderScore'}).text
+        binfo['Atacker total damge'] = soup.find('b',{'id':'attackerScore'}).text
+
+               #binfo['Round time']=soup.find('span',{'class':'countdown_row countdown_amount'}).text
         return binfo
-
-
 
     def get_inventory_info(self):
         response = self.n.get_page('index.html')
@@ -205,18 +198,30 @@ class UserSesion:
         return l
 
     def eat_food(self, quality):
-        response = self.n.post_page('eat.html', {'quality':quality})
+        response = self.n.post_page('eat.html', {'quality':str(quality)})
         s=response.read()
         hp=re.findall('eat more, your health will exceed 100hp', s)
+        inv=re.findall('No food in your inventory',s)
         if hp:
             stat ="Your can't eat more, your health will exceed 100hp"
+        elif inv:
+            stat='No food in your inventory'
         else:
             stat='Done'
         return stat
 
     def use_gift(self, quality):
-        response = self.n.post_page('gift.html', {'quality':quality})
-        return response
+        response = self.n.post_page('gift.html', {'quality':str(quality)})
+        s=response.read()
+        hp=re.findall('eat more, your health will exceed 100hp', s)
+        inv=re.findall('No gifts in your inventory',s)
+        if hp:
+             stat ="Your can't eat more, your health will exceed 100hp"
+        elif inv:
+            stat='No gifts in your inventory'
+        else:
+            stat='Done'
+        return stat
 
     def work(self):
         '''Try to work, if error occured return error code if no errors return 0
@@ -256,14 +261,18 @@ class UserSesion:
         return response
 
     def train(self):
-        response = self.n.post_page('train.html', {})
-        return response.url
+        if 'Train' in self.get_todays_tasks_list():
+            response = self.n.post_page('train.html')
+            status=0
+        else:
+            status=1
+        return status
 
     def fight(self,weaponQuality,battleRoundId,side,value):
         if side=='a':
-            side='attackers'
+            side='attacker'
         elif side=='d':
-            side='defenders'
+            side='defender'
         if value==1:
             value='Fight (1 hit)'
         elif value==5:
@@ -273,6 +282,8 @@ class UserSesion:
         results={}
         if re.findall('No health left',str(soup)):
             results['Error']='No health left'
+        elif re.findall('Server overloaded',str(soup)):
+             results['Error']='Server Overloaded'
         else:
             results['Hit type']=soup.find('b',{'class':"mediumStatsLabel blueLabel",'style':"padding:3px 5px;"}).text
             results['Damage done']=soup.find('table').findChildren('td')[1].text
@@ -425,48 +436,35 @@ class UserSesion:
         response=self.n.post_page('citizenMarketOffers.html', {'countryId':countryId,'product':product,'quantity':quantity,'price':price,'action':'POST_OFFER'})
         return response
 
-    def get_equipment_stats(self):
-        response=self.n.get_page('train.html')
-        parser = etree.HTMLParser()
-        tree = etree.parse(response, parser)
+    def get_citizen_equipment_stats(self,citizenId):
+        response=self.n.get_page('profile.html?id='+str(citizenId))
+        soup=BeautifulSoup(response.read())
         eq={}
-        eq['Damage min']=tree.xpath('//*[@id="hitHelp"]/b[1]')[0].text.strip()
-        eq['Damage max']=tree.xpath('//*[@id="hitHelp"]/b[2]')[0].text.strip()
-        eq['Critical Hit min']=tree.xpath('//*[@id="contentRow"]/td[2]/div[2]/div[2]/div[1]/div[5]/b[1]')[0].text.strip()
-        eq['Critical Hit max']=tree.xpath('//*[@id="contentRow"]/td[2]/div[2]/div[2]/div[1]/div[5]/b[2]')[0].text.strip()
-        eq['Critical Hit chance']=tree.xpath('//*[@id="criticalHelp"]/b')[0].text.strip()
-        eq['Miss chance']=tree.xpath('//*[@id="missHelp"]/b')[0].text.strip()
-        eq['Chance to avoid DMG']=tree.xpath('//*[@id="avoidHelp"]/b')[0].text.strip()
-        return eq
+        eq['Damage min']=soup.find('div',{'id':'hitHelp'}).findChildren('b')[0].text
+        eq['Damage max']=soup.find('div',{'id':'hitHelp'}).findChildren('b')[1].text
+        eq['Critical Hit min']=soup.find('div',{'class':'equipmentBlueBox'}).findChildren('b')[0].text
+        eq['Critical Hit max']=soup.find('div',{'class':'equipmentBlueBox'}).findChildren('b')[-1].text
+        eq['Critical Hit chance']=soup.find('div',{'id':'criticalHelp'}).findChildren('b')[0].text
+        eq['Miss chance']=soup.find('div',{'id':'missHelp'}).findChildren('b')[0].text
+        eq['Chance to avoid DMG']=soup.find('div',{'id':'avoidHelp'}).findChildren('b')[0].text
+        for s in soup.find('div',{'style':'float:left;margin-left:10px; width:240px;min-height:210px;'}).findChildren('div')[2].findChildren('div',{'style':'overflow:auto;'}):
+            eq[s.findChild('div', {'class':"statsLabel smallDescLabel"}).text]=s.findChild('div', {'class':"statsLabelRight descStatsLabel blueLabel"}).text
+        return soup
 
-    def get_citizen_friends_list(self,citizenId=0):
+    def get_citizen_friends_list(self,citizenId):
         l=[]
-        if citizenId==0:
-            response=self.n.get_page('profile.html?id='+self.get_my_info()['ID'])
+        response=self.n.get_page('profile.html?id='+citizenId)
+        soup=BeautifulSoup(response.read())
+        count_pages=int(soup.find('ul',{'id':'pagination-digg'}).findChildren('li')[-2].text)+1
+        for x in range(1,count_pages):
+            response=self.n.get_page('profile.html?id='+citizenId+'&page='+str(x))
             soup=BeautifulSoup(response.read())
-            count_pages=int(soup.find('ul',{'id':'pagination-digg'}).findChildren('li')[-2].text)+1
-            for x in range(1,count_pages):
-                response=self.n.get_page('profile.html?id='+self.get_my_info()['ID']+'&page='+str(x))
-                soup=BeautifulSoup(response.read())
-                for y in soup.findAll('div',{'style':'float: left; width: 92px; height: 75px; word-wrap: break-word'}):
-                    w={}
-                    w['Nick']=y.contents[1].contents[0]
-                    w['ID']=dict(y.contents[1].attrs)['href'][16:]
-                    w['Citizenship']=y.contents[3].attrs[2][1][45:-4]
-                    l.append(w)
-        else:
-            response=self.n.get_page('profile.html?id='+citizenId)
-            soup=BeautifulSoup(response.read())
-            count_pages=int(soup.find('ul',{'id':'pagination-digg'}).findChildren('li')[-2].text)+1
-            for x in range(1,count_pages):
-                response=self.n.get_page('profile.html?id='+citizenId+'&page='+str(x))
-                soup=BeautifulSoup(response.read())
-                for y in soup.findAll('div',{'style':'float: left; width: 92px; height: 75px; word-wrap: break-word'}):
-                    w={}
-                    w['Nick']=y.contents[1].contents[0]
-                    w['ID']=dict(y.contents[1].attrs)['href'][16:]
-                    w['Citizenship']=y.contents[3].attrs[2][1][45:-4]
-                    l.append(w)
+            for y in soup.findAll('div',{'style':'float: left; width: 92px; height: 75px; word-wrap: break-word'}):
+                w={}
+                w['Nick']=y.contents[1].contents[0]
+                w['ID']=dict(y.contents[1].attrs)['href'][16:]
+                w['Citizenship']=y.contents[3].attrs[2][1][45:-4]
+                l.append(w)
         return l
 
     def get_citizen_medals_list(self,citizenId):
@@ -483,4 +481,39 @@ class UserSesion:
                 except IndexError:
                     med[medal.findChildren('b')[0].text]='1'
         return med
+
+    def get_game_day(self):
+        response = self.n.get_page('index.html')
+        return re.findall('day ([0-9]+)',response.read())[0]
+
+    def send_ingame_message(self,receiverName,title,body):
+        response=self.n.post_page('composeMessage.html',{'receiverName':receiverName,'title':title,'body':body,'action':'REPLY'})
+        return response
+
+    def get_todays_tasks_list(self):
+        response=self.n.get_page('index.html')
+        soup=BeautifulSoup(response.read())
+        l=[]
+        if soup.find('div',{'id':'showTutorialTutorial'}):
+            for task in soup.find('div',{'id':'showTutorialTutorial'}).findChildren('span'):
+                l.append(task.text)
+        return l
+
+    def get_server_time(self):
+        soup=BeautifulSoup(self.n.get_page('index.html'))
+        time={}
+        time['Hour']=soup.find('b',{'id':'time'}).text.split(' ')[0].split(':')[0]
+        time['Minutes']=soup.find('b',{'id':'time'}).text.split(' ')[0].split(':')[1]
+        time['Day']=soup.find('b',{'id':'time'}).text.split(' ')[1].split('-')[0]
+        time['Mounth']=soup.find('b',{'id':'time'}).text.split(' ')[1].split('-')[1]
+        time['Year']=soup.find('b',{'id':'time'}).text.split(' ')[1].split('-')[2]
+        return time
+
+    def vote_for_article(self,articleId):
+        return self.n.post_page('vote.html?id='+articleId)
+
+    def subscrible_newspaper(self,newspaperId):
+        return self.n.post_page('sub.html?id='+newspaperId)
+
+
 

@@ -3,6 +3,7 @@
 
 import json
 from network import SimpleUrl
+from network import CustomUrl
 
 class OfficialApi:
     '''Wrapper around official e-sim's API
@@ -43,4 +44,13 @@ class OfficialApi:
 
     def get_regions_data(self):
         page=self.n.open_url('apiRegions.html')
+        return json.loads(page.read())
+
+class UnofficialAPI:
+    def __init__(self,server):
+        self.o=CustomUrl()
+        self.server=server
+
+    def get_battle_info(self,battleId,round,format='json'):
+        page=self.o.open('http://api.cscpro.org/esim/'+self.server+'/battle/'+battleId+'/'+round+'.'+format)
         return json.loads(page.read())

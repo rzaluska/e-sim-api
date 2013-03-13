@@ -4,7 +4,7 @@
 import urllib, urllib2, cookielib
 
 class AuthNetworkTools:
-    '''Class for general usage when it is going to use cookies to track user sesion in web page.'''
+    '''Class for general usage when it is going to use cookies for tracking user sesion on web page.'''
     def __init__(self,base_url):
         self.bu=base_url
         self.cookie_file = 'login.cookies'
@@ -26,7 +26,7 @@ class AuthNetworkTools:
         self.cj.save()
         return self.response
 
-    def post_page(self,url,data):
+    def post_page(self,url,data={}):
         self.u=self.bu+url
         self.form_data =  urllib.urlencode(data)
         self.response = self.opener.open(self.u,self.form_data)
@@ -45,3 +45,7 @@ class SimpleUrl:
         u=self.ba+url
         response=urllib2.urlopen(u)
         return response
+
+class CustomUrl:
+    def open(self,url):
+        return urllib2.urlopen(url)
