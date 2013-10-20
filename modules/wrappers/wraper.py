@@ -5,13 +5,31 @@ import re
 from BeautifulSoup import BeautifulSoup
 from lxml import etree
 
-class Functions:
+
+class LoggedUserSesion:
     '''This class contains functions to parse e-sim data directly from this game pages.
     After every function response to e-sim server is sended so pages are allays had to be updated between every functions calls.
     Class contains functions to get data and also to put data to e-sim game.
-    So now you have chance to administrate your e-sim account from python script.'''
-    def __init__(self,LoggedUserSesionClass):
-        self.n=LoggedUserSesionClass.n
+    So now you have chance to administrate your e-sim account from python script.
+    Arguments for class are server, login and password.'''
+
+    def __init__(self, network_provider, server):
+        if server == 0:
+            self.n = network_provider("http://primera.e-sim.org/")
+        elif server == 1:
+            self.n = network_provider("http://secura.e-sim.org/")
+
+    def login(self,login,password):
+         response=self.n.post_page('login.html', {'login':login, 'password':password})
+
+    def logout(self):
+        response = self.n.get_page('logout.html')
+        if response.code == 200:
+            s = 'OK'
+        else:
+            s = 'ERROR'
+        return s
+
     def send_money(self, targetId, currencyId, summ, reason):
         response = self.n.post_page('donateMoney.html?id=' + targetId, {'currencyId':currencyId, 'sum':summ, 'reason':reason})
         return response
@@ -238,7 +256,7 @@ class Functions:
             status=4
         else:
             if have_job==1:
-                response = self.n.get_page("work.html?action=work")
+                response = self.n.post_page("work.html",{"action":"work"})
                 strona = response.read()
                 raw_problem=re.findall('There is no raw in the company. You can resign and find another job', strona)
                 m_problem=re.findall('There is no money in the company. You can resign and find another job', strona)
